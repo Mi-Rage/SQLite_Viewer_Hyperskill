@@ -1,14 +1,16 @@
 package viewer;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
 import java.util.ArrayList;
 
 public class SQLiteViewer extends JFrame {
 
-    final String TITLE_OF_PROGRAM = "SQLite Viewer";
-    final String BTN_ENTER = "Open";
-    final String BTN_EXEC = "Execute";
-    DataBase dataBase;
+    final private String TITLE_OF_PROGRAM = "SQLite Viewer";
+    final private String BTN_ENTER = "Open";
+    final private String BTN_EXEC = "Execute";
+    private DataBase dataBase;
+    private ArrayList<String> tables;
 
     public SQLiteViewer() {
         setTitle(TITLE_OF_PROGRAM);
@@ -43,12 +45,19 @@ public class SQLiteViewer extends JFrame {
         executeQueryButton.setBounds(getWidth() - 140, 120, 110, 30);
         add(executeQueryButton);
 
+        DefaultTableModel model = new DefaultTableModel();
+        JTable table = new JTable(model);
+        table.setName("Table");
+        JScrollPane contentTable = new JScrollPane(table);
+        contentTable.setBounds(20,200, getWidth() - 50, 300);
+        add(contentTable);
+
         openFileButton.addActionListener(e -> {
             String fileName = fileNameTextField.getText();
             if (!fileName.equals("")) {
                 System.out.println(fileName);
                 dataBase = new DataBase(fileName);
-                ArrayList<String> tables = dataBase.getTableNames();
+                tables = dataBase.getTableNames();
                 tablesComboBox.removeAllItems();
                 tables.forEach(tablesComboBox::addItem);
                 queryTextArea.removeAll();
@@ -58,7 +67,23 @@ public class SQLiteViewer extends JFrame {
         tablesComboBox.addActionListener(e -> {
             String item = (String) tablesComboBox.getSelectedItem();
             queryTextArea.removeAll();
-            queryTextArea.setText("SELECT * FROM " + item + ";");
+            String request = "SELECT * FROM " + item + ";";
+            queryTextArea.setText(request);
+        });
+
+        executeQueryButton.addActionListener(e -> {
+            model.setRowCount(0);
+
+            String request = queryTextArea.getText();
+            dataBase.getResponse(request);
+
+            Object[] columns = dataBase.getColumnNames().toArray();
+            model.setColumnIdentifiers(columns);
+
+            ArrayList<ArrayList<String>> data = dataBase.getContentTable();
+            for (ArrayList<String> row : data) {
+                model.addRow(row.toArray());
+            }
         });
 
         setVisible(true);
