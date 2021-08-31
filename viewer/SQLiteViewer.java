@@ -2,6 +2,9 @@ package viewer;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 
 public class SQLiteViewer extends JFrame {
@@ -11,6 +14,9 @@ public class SQLiteViewer extends JFrame {
     final private String BTN_EXEC = "Execute";
     private DataBase dataBase;
     private ArrayList<String> tables;
+    private final JComboBox<String> tablesComboBox;
+    private final JTextArea queryTextArea;
+    private final JButton executeQueryButton;
 
     public SQLiteViewer() {
         setTitle(TITLE_OF_PROGRAM);
@@ -30,17 +36,17 @@ public class SQLiteViewer extends JFrame {
         openFileButton.setBounds(getWidth() - 100, 20, 70, 30);
         add(openFileButton);
 
-        JComboBox<String> tablesComboBox = new JComboBox<>();
+        tablesComboBox = new JComboBox<>();
         tablesComboBox.setName("TablesComboBox");
         tablesComboBox.setBounds(20, 70, getWidth() - 50, 30);
         add(tablesComboBox);
 
-        JTextArea queryTextArea = new JTextArea();
+        queryTextArea = new JTextArea();
         queryTextArea.setName("QueryTextArea");
         queryTextArea.setBounds(20, 120, getWidth() - 170, 60);
         add(queryTextArea);
 
-        JButton executeQueryButton = new JButton(BTN_EXEC);
+        executeQueryButton = new JButton(BTN_EXEC);
         executeQueryButton.setName("ExecuteQueryButton");
         executeQueryButton.setBounds(getWidth() - 140, 120, 110, 30);
         add(executeQueryButton);
@@ -52,15 +58,22 @@ public class SQLiteViewer extends JFrame {
         contentTable.setBounds(20,200, getWidth() - 50, 300);
         add(contentTable);
 
+        setAllFieldsEnabled(false);
+
         openFileButton.addActionListener(e -> {
             String fileName = fileNameTextField.getText();
-            if (!fileName.equals("")) {
+
+            if (Files.exists(Paths.get(fileName)) && !fileName.equals("")) {
                 System.out.println(fileName);
+                setAllFieldsEnabled(true);
                 dataBase = new DataBase(fileName);
                 tables = dataBase.getTableNames();
                 tablesComboBox.removeAllItems();
                 tables.forEach(tablesComboBox::addItem);
                 queryTextArea.removeAll();
+            } else {
+                setAllFieldsEnabled(false);
+                JOptionPane.showMessageDialog(new Frame(), String.format("ERROR! File \"%s\" not found!", fileName));
             }
         });
 
@@ -75,17 +88,24 @@ public class SQLiteViewer extends JFrame {
             model.setRowCount(0);
 
             String request = queryTextArea.getText();
-            dataBase.getResponse(request);
+            if (dataBase.getResponse(request)) {
+                Object[] columns = dataBase.getColumnNames().toArray();
+                model.setColumnIdentifiers(columns);
 
-            Object[] columns = dataBase.getColumnNames().toArray();
-            model.setColumnIdentifiers(columns);
-
-            ArrayList<ArrayList<String>> data = dataBase.getContentTable();
-            for (ArrayList<String> row : data) {
-                model.addRow(row.toArray());
+                ArrayList<ArrayList<String>> data = dataBase.getContentTable();
+                for (ArrayList<String> row : data) {
+                    model.addRow(row.toArray());
+                }
+            } else {
+                JOptionPane.showMessageDialog(new Frame(), String.format("ERROR! \"%s\" wrong request!", request));
             }
         });
 
         setVisible(true);
+    }
+
+    private void setAllFieldsEnabled(boolean mode) {
+        queryTextArea.setEnabled(mode);
+        executeQueryButton.setEnabled(mode);
     }
 }

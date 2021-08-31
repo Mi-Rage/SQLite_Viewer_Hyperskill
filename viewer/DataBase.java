@@ -39,7 +39,7 @@ public class DataBase {
         return result;
     }
 
-    public void getResponse(String request) {
+    public boolean getResponse(String request) {
         columnNames = new ArrayList<>();
         int columnNumbs;
         contentTable = new ArrayList<>();
@@ -64,7 +64,9 @@ public class DataBase {
             }
         } catch (SQLException e) {
             System.out.println(e.getMessage());
+            return false;
         }
+        return true;
     }
 
     public ArrayList<String> getColumnNames() {
